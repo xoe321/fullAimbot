@@ -1,0 +1,282 @@
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 285, 0, 356) -- ขนาด 30% ของหน้าจอ
+frame.Position = UDim2.new(0.348, 0, 0.342, 0) -- จัดกึ่งกลาง
+frame.BackgroundColor3 = Color3.fromRGB(189, 189, 189) -- สีแดงอ่อน
+frame.BorderSizePixel = 0 -- ขอบหนา 2px
+frame.Parent = screenGui
+
+local text = Instance.new("TextLabel")
+text.BackgroundTransparency = 1
+text.Position = UDim2.new(0.24, 0, 0.09, 0)
+text.TextColor3 = Color3.fromRGB(255, 255, 6)
+text.TextSize = 25
+text.Text = "FFH4X"
+text.Parent = frame
+
+local text4 = Instance.new("TextLabel")
+text4.BackgroundTransparency = 1
+text4.Position = UDim2.new(0.21, 0, 0.38, 0)
+text4.TextColor3 = Color3.fromRGB(255, 0, 0)
+text4.TextSize = 14
+text4.Text = "---Aimbot---"
+text4.Parent = frame
+
+local text5 = Instance.new("TextLabel")
+text5.BackgroundTransparency = 1
+text5.Position = UDim2.new(0.13, 0, 0.47, 0)
+text5.TextColor3 = Color3.fromRGB(255, 255, 255)
+text5.TextSize = 12
+text5.Text = "Aimbot"
+text5.Parent = frame
+
+local Aimbotbutton = Instance.new("TextButton")
+Aimbotbutton.BackgroundTransparency = 0
+Aimbotbutton.Position = UDim2.new(0.7, 0, 0.43, 0)
+Aimbotbutton.TextColor3 = Color3.fromRGB(0, 0, 0)
+Aimbotbutton.Text = "OFF"
+Aimbotbutton.Size = UDim2.new(0, 50, 0, 30)
+Aimbotbutton.TextSize = 18
+Aimbotbutton.Parent = frame
+
+local text6 = Instance.new("TextLabel")
+text6.BackgroundTransparency = 1
+text6.Position = UDim2.new(0.17, 0, 0.60, 0)
+text6.TextColor3 = Color3.fromRGB(255, 0, 0)
+text6.TextSize = 14
+text6.Text = "---ESP---"
+text6.Parent = frame
+
+local text7 = Instance.new("TextLabel")
+text7.BackgroundTransparency = 1
+text7.Position = UDim2.new(0.10, 0, 0.70, 0)
+text7.TextColor3 = Color3.fromRGB(255, 255, 255)
+text7.TextSize = 12
+text7.Text = "ESP"
+text7.Parent = frame
+
+local ESPbutton = Instance.new("TextButton")
+ESPbutton.BackgroundTransparency = 0
+ESPbutton.Position = UDim2.new(0.7, 0, 0.67, 0)
+ESPbutton.TextColor3 = Color3.fromRGB(0, 0, 0)
+ESPbutton.Text = "OFF"
+ESPbutton.Size = UDim2.new(0, 50, 0, 30)
+ESPbutton.TextSize = 18
+ESPbutton.Parent = frame
+
+-- Aimbot and ESP Logic
+local lockEnabled = false
+local espEnabled = false
+local connection
+local espConnections = {}
+
+-- ฟังก์ชันหาผู้เล่นที่อยู่ใกล้ที่สุด
+local function getNearestPlayer(excludeTeam)
+	local player = game.Players.LocalPlayer
+	local character = player.Character
+	if not character then return nil end
+
+	local closestPlayer = nil
+	local closestDistance = math.huge
+
+	for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+		if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("Head") then
+			if excludeTeam == false or player.Team ~= otherPlayer.Team then
+				local distance = (character.HumanoidRootPart.Position - otherPlayer.Character.HumanoidRootPart.Position).Magnitude
+				if distance < closestDistance then
+					closestDistance = distance
+					closestPlayer = otherPlayer
+				end
+			end
+		end
+	end
+	return closestPlayer
+end
+
+-- ฟังก์ชันล็อกกล้องไปที่เป้าหมาย
+local function lockOnTarget(excludeTeam)
+	if connection then connection:Disconnect() end
+
+	local runService = game:GetService("RunService")
+	connection = runService.RenderStepped:Connect(function()
+		if not lockEnabled then
+			connection:Disconnect()
+			return
+		end
+
+		local player = game.Players.LocalPlayer
+		local character = player.Character
+		if not character then return end
+
+		local targetPlayer = getNearestPlayer(excludeTeam)
+		if targetPlayer and targetPlayer.Character then
+			local targetHead = targetPlayer.Character:FindFirstChild("Head")
+			if targetHead and targetPlayer.Character:FindFirstChild("Humanoid").Health > 0 then
+				workspace.CurrentCamera.CFrame = CFrame.lookAt(workspace.CurrentCamera.CFrame.Position, targetHead.Position)
+			end
+		end
+	end)
+end
+
+-- ฟังก์ชันสร้าง ESP
+local function createESP(player)
+	if player.Character then
+		if not player.Character:FindFirstChild("ESPBox") then
+			local highlight = Instance.new("Highlight")
+			highlight.Parent = player.Character
+			highlight.FillColor = Color3.fromRGB(255, 0, 0) 
+			highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+			highlight.FillTransparency = 0.5
+			highlight.OutlineTransparency = 0
+			highlight.Name = "ESPBox"
+		end
+	end
+end
+
+-- ฟังก์ชันเปิด/ปิด ESP
+local function toggleESP(state)
+	espEnabled = state
+
+	if state then
+		for _, player in pairs(game.Players:GetPlayers()) do
+			createESP(player)
+			local conn = player.CharacterAdded:Connect(function()
+				wait(0.5)
+				createESP(player)
+			end)
+			espConnections[player] = conn
+		end
+
+		local playerAddedConn = game.Players.PlayerAdded:Connect(function(player)
+			local charAddedConn = player.CharacterAdded:Connect(function()
+				wait(0.5)
+				createESP(player)
+			end)
+			espConnections[player] = charAddedConn
+		end)
+		espConnections["PlayerAdded"] = playerAddedConn
+	else
+		for _, player in pairs(game.Players:GetPlayers()) do
+			if player.Character then
+				local espBox = player.Character:FindFirstChild("ESPBox")
+				if espBox then
+					espBox:Destroy()
+				end
+			end
+			if espConnections[player] then
+				espConnections[player]:Disconnect()
+				espConnections[player] = nil
+			end
+		end
+
+		if espConnections["PlayerAdded"] then
+			espConnections["PlayerAdded"]:Disconnect()
+			espConnections["PlayerAdded"] = nil
+		end
+	end
+end
+
+-- Toggle functionality for Aimbotbutton
+local aimbotActive = false
+Aimbotbutton.MouseButton1Click:Connect(function()
+	aimbotActive = not aimbotActive
+	if aimbotActive then
+		Aimbotbutton.Text = "ON"
+		Aimbotbutton.TextColor3 = Color3.fromRGB(0, 255, 255) -- สีฟ้าเมื่อเปิด
+		lockEnabled = true
+		lockOnTarget(true) -- เริ่ม Aimbot
+	else
+		Aimbotbutton.Text = "OFF"
+		Aimbotbutton.TextColor3 = Color3.fromRGB(255, 255, 255) -- สีดำเมื่อปิด
+		lockEnabled = false
+		if connection then connection:Disconnect() end
+	end
+end)
+
+-- Toggle functionality for ESPbutton
+local espActive = false
+ESPbutton.MouseButton1Click:Connect(function()
+	espActive = not espActive
+	if espActive then
+		ESPbutton.Text = "ON"
+		ESPbutton.TextColor3 = Color3.fromRGB(0, 255, 255) -- สีฟ้าเมื่อเปิด
+		toggleESP(true) -- เปิด ESP
+	else
+		ESPbutton.Text = "OFF"
+		ESPbutton.TextColor3 = Color3.fromRGB(255, 255, 255) -- สีดำเมื่อปิด
+		toggleESP(false) -- ปิด ESP
+	end
+end)
+
+local dragging = false
+local dragInput, mousePos, framePos
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragInput = input
+		mousePos = input.Position
+		framePos = frame.Position
+	end
+end)
+
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+		local delta = input.Position - mousePos
+		frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+	end
+end)
+
+frame.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+-- สร้าง GUI
+local player = game.Players.LocalPlayer
+local screenGui1 = Instance.new("ScreenGui")
+screenGui1.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Position = UDim2.new(0.5, -100, 0.5, -50)
+frame.BackgroundTransparency = 1
+frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+frame.Parent = screenGui1
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1, 0, 1, 0)
+textLabel.Position = UDim2.new(0, 0, 0, 0)
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+textLabel.TextSize = 24
+textLabel.Text = "0/381"
+textLabel.Parent = frame
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1, 0, 1, 0)
+textLabel.Position = UDim2.new(0, 0, 0, 0)
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+textLabel.TextSize = 24
+textLabel.Text = "Load..."
+textLabel.Parent = frame
+
+-- ซ่อน UI ก่อน
+screenGui.Enabled = false
+frame.Visible = true
+
+-- ฟังก์ชันที่ใช้ในการนับ
+local function countUp()
+	for i = 1, 381 do
+		textLabel.Text = i.."/381 load..."
+		wait(0.01)  -- ควบคุมความเร็วในการนับ
+	end
+end
+
+-- เปิด UI และเริ่มการนับ
+
+countUp()
+frame.Visible = false
+screenGui.Enabled = true
